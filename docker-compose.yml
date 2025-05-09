@@ -1,0 +1,33 @@
+networks:
+  comfy-network:
+    external: true
+
+services:
+  comfy:
+    image: servicestack/comfy-ffmpeg:latest
+    container_name: comfy-ffmpeg
+    networks:
+      - comfy-network
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./data/.cache:/data/.cache
+      - ./data/models:/data/models
+      - ./data/input:/data/input
+      - ./data/output:/data/output
+      - ./data/notebooks:/data/notebooks
+      - ./data/user:/data/user
+      - ./data/custom_nodes:/data/custom_nodes
+    environment:
+      - CLI_ARGS=--output-directory /data/output --temp-directory /data/output/temp --user-directory /data/user
+    env_file:
+      - path: .env
+        required: false
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

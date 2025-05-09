@@ -1,3 +1,13 @@
+custom_nodes/
+*.safetensors
+*.ckpt
+*.pth
+*.ipynb
+input/
+output/
+user/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
