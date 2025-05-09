@@ -30,7 +30,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
-        context: ./comfy/
+        context: ./build/
         push: true
         tags: |
           ${{ env.DOCKER_REPO }}:${{ github.event.inputs.tag }}
