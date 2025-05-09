@@ -3,6 +3,7 @@ custom_nodes/
 *.ckpt
 *.pth
 *.ipynb
+.cache/
 input/
 output/
 user/
