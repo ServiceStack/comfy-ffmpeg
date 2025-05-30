@@ -8,6 +8,7 @@ custom_nodes/
 input/
 output/
 user/
+models/
 
 
 # Byte-compiled / optimized / DLL files

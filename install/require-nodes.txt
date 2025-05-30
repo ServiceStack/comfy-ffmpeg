@@ -1,0 +1,4 @@
+ltdrdata/ComfyUI-Manager
+pythongosssss/ComfyUI-Custom-Scripts
+MoonHugo/ComfyUI-FFmpeg
+ServiceStack/comfy-asset-downloader

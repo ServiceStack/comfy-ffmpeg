@@ -1,0 +1,2 @@
+nsfw/640m.onnx              https://github.com/notAI-tech/NudeNet/releases/download/v3.4-weights/640m.onnx
+nsfw/erax_nsfw_yolo11m.pt   https://huggingface.co/erax-ai/EraX-NSFW-V1.0/resolve/5cb3aace4faa3e42ff6cfeb97fd93c250c65d7fb/erax_nsfw_yolo11m.pt

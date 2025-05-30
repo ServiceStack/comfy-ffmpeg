@@ -22,10 +22,8 @@ RUN pip install --upgrade pip
 
 # Clone and setup ComfyUI with venv
 RUN --mount=type=cache,target=/root/.cache/pip \
-  git clone --depth 1 --branch v0.3.30 https://github.com/comfyanonymous/ComfyUI.git ${ROOT} && \
+  git clone --depth 1 --branch v0.3.34 https://github.com/comfyanonymous/ComfyUI.git ${ROOT} && \
   cd ${ROOT} && \
-  python -m venv venv && \
-  . venv/bin/activate && \
   ## Use latest torch and torchvision
   sed -i 's/^torch$/torch~=2.7.0/' requirements.txt && \
   sed -i 's/^torchvision$/torchvision~=0.22.0/' requirements.txt && \
@@ -33,8 +31,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
 
 # HACK, we want to include apiKey in the prompt call if it is present
-RUN . ${ROOT}/venv/bin/activate && \
-    sed -i 's/= this.user;/= this.user; if (localStorage.apikey) options2.headers.Authorization=`Bearer ${localStorage.apikey}`;/' $(python -c "import sysconfig; print(sysconfig.get_path('purelib'))")/comfyui_frontend_package/static/assets/index-CJpGM-n7.js
+# /opt/conda/lib/python3.11/site-packages
+RUN sed -i 's/ = this.requestHeader;/ = this.requestHeader; if (localStorage.apikey) fetchOptions.headers.Authorization=`Bearer ${localStorage.apikey}`;/' $(python -c "import sysconfig; print(sysconfig.get_path('purelib'))")/comfyui_frontend_package/static/assets/index-0j2RaeNn.js
 
 RUN rm -rf ${ROOT}/custom_nodes ${ROOT}/input ${ROOT}/models ${ROOT}/notebooks ${ROOT}/output && \
     mkdir -p ${DATA}/.cache ${DATA}/user ${DATA}/custom_nodes ${DATA}/input ${DATA}/models ${DATA}/notebooks ${DATA}/output
@@ -61,4 +59,4 @@ ENV CLI_ARGS=""
 
 EXPOSE 7860
 ENTRYPOINT ["/docker/entrypoint.sh"]
-CMD ["sh", "-c", ". venv/bin/activate && python -u main.py --listen --port 7860 ${CLI_ARGS}"]
+CMD ["sh", "-c", "python -u main.py --listen --port 7860 ${CLI_ARGS}"]

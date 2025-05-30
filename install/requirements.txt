@@ -1,0 +1,4 @@
+servicestack
+onnxruntime
+ultralytics
+supervision

@@ -18,6 +18,7 @@ services:
       - ./data/notebooks:/data/notebooks
       - ./data/user:/data/user
       - ./data/custom_nodes:/data/custom_nodes
+      - /etc/machine-id:/etc/machine-id
     environment:
       - CLI_ARGS=--output-directory /data/output --temp-directory /data/output/temp --user-directory /data/user
     env_file:

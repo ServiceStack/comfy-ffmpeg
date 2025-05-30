@@ -1,0 +1,181 @@
+[
+  {
+    "url": "https://civitai.com/api/download/models/1031794?type=Model&format=SafeTensor&size=pruned&fp=fp16",
+    "save_path": "checkpoints",
+    "filename": "dreamshaperXL_v21TurboDPMSDE.safetensors",
+    "token": "$CIVITAI_TOKEN",
+    "size": "6.7G"
+  },
+  {
+    "url": "https://civitai.com/api/download/models/1522905?type=Model&format=SafeTensor&size=pruned&fp=fp16",
+    "save_path": "checkpoints",
+    "filename": "epiCRealismXL-LastFAME.safetensors",
+    "token": "$CIVITAI_TOKEN",
+    "size": "6.5G"
+  },
+  {
+    "url": "https://civitai.com/api/download/models/1640059?type=Model&format=SafeTensor&size=full&fp=fp16",
+    "save_path": "checkpoints",
+    "filename": "CHEYENNE_v22VAEBaked.safetensors",
+    "token": "$CIVITAI_TOKEN",
+    "size": "6.5G"
+  },
+  {
+    "url": "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors",
+    "save_path": "checkpoints",
+    "filename": "sdxl_lightning_4step.safetensors",
+    "size": "6.5G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_fast_fp8.safetensors",
+    "save_path": "diffusion_models",
+    "filename": "hidream_i1_fast_fp8.safetensors",
+    "size": "16G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors",
+    "save_path": "clip",
+    "filename": "clip_g_hidream.safetensors",
+    "size": "1.3G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors",
+    "save_path": "clip",
+    "filename": "clip_l_hidream.safetensors",
+    "size": "237M"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors",
+    "save_path": "clip",
+    "filename": "llama_3.1_8b_instruct_fp8_scaled.safetensors",
+    "size": "8.5G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors",
+    "save_path": "vae",
+    "filename": "ae.safetensors",
+    "size": "320M"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors",
+    "save_path": "clip_vision",
+    "filename": "clip_vision_h.safetensors",
+    "size": "1.2G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors",
+    "save_path": "diffusion_models",
+    "filename": "wan2.1_i2v_480p_14B_fp16.safetensors",
+    "size": "31G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "save_path": "text_encoders",
+    "filename": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "size": "6.3G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+    "save_path": "vae",
+    "filename": "wan_2.1_vae.safetensors",
+    "size": "243M"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/blob/main/text_encoders/clip_l.safetensors",
+    "save_path": "clip",
+    "filename": "clip_l.safetensors",
+    "size": "235M"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/resolve/main/sd3.5_large_fp8_scaled.safetensors",
+    "save_path": "checkpoints",
+    "filename": "sd3.5_large_fp8_scaled.safetensors",
+    "size": "14G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/resolve/main/text_encoders/clip_g.safetensors",
+    "save_path": "clip",
+    "filename": "clip_g.safetensors",
+    "size": "1.3G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/resolve/main/text_encoders/t5xxl_fp16.safetensors",
+    "save_path": "clip",
+    "filename": "t5xxl_fp16.safetensors",
+    "size": "9.2G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/resolve/main/text_encoders/t5xxl_fp8_e4m3fn.safetensors",
+    "save_path": "clip",
+    "filename": "t5xxl_fp8_e4m3fn.safetensors",
+    "size": "4.6G"
+  },
+  {
+    "url": "https://huggingface.co/Comfy-Org/stable-diffusion-v1-5-archive/resolve/main/v1-5-pruned-emaonly-fp16.safetensors",
+    "save_path": "checkpoints",
+    "filename": "v1-5-pruned-emaonly-fp16.safetensors",
+    "size": "2.0G"
+  },
+  {
+    "url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/flux1-schnell.safetensors",
+    "save_path": "diffusion_models",
+    "filename": "flux1-schnell.safetensors",
+    "token": "$HF_TOKEN",
+    "size": "23G"
+  },
+  {
+    "url": "https://huggingface.co/stabilityai/sdxl-turbo/resolve/main/sd_xl_turbo_1.0_fp16.safetensors",
+    "save_path": "checkpoints",
+    "filename": "sd_xl_turbo_1.0_fp16.safetensors",
+    "size": "6.5G"
+  },
+  {
+    "url": "https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors",
+    "save_path": "loras",
+    "filename": "aesthetic_anime_v1s.safetensors",
+    "size": "325M"
+  },
+  {
+    "url": "https://huggingface.co/stabilityai/stable-audio-open-1.0/resolve/main/model.safetensors",
+    "save_path": "checkpoints",
+    "filename": "stable-audio-open.safetensors",
+    "size": "4.6G"
+  },
+  {
+    "url": "https://huggingface.co/stabilityai/stable-diffusion-3.5-large-turbo/resolve/main/sd3.5_large_turbo.safetensors",
+    "save_path": "checkpoints",
+    "filename": "sd3.5_large_turbo.safetensors",
+    "token": "$HF_TOKEN",
+    "size": "16G"
+  },
+  {
+    "url": "https://huggingface.co/stabilityai/stable-diffusion-3.5-large/resolve/main/sd3.5_large.safetensors",
+    "save_path": "checkpoints",
+    "filename": "sd3.5_large.safetensors",
+    "token": "$HF_TOKEN",
+    "size": "16G"
+  },
+  {
+    "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors",
+    "save_path": "checkpoints",
+    "filename": "sd_xl_base_1.0.safetensors",
+    "size": "6.5G"
+  },
+  {
+    "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner_1.0.safetensors",
+    "save_path": "checkpoints",
+    "filename": "sd_xl_refiner_1.0.safetensors",
+    "size": "5.7G"
+  },
+  {
+    "url": "https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.ckpt",
+    "save_path": "Stable-diffusion",
+    "filename": "v1-5-pruned-emaonly.ckpt"
+  },
+  {
+    "url": "https://huggingface.co/t5-base/resolve/main/model.safetensors",
+    "save_path": "clip",
+    "filename": "t5_base.safetensors",
+    "size": "851M"
+  }
+]
