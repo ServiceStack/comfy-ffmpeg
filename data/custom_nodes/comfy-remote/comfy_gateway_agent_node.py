@@ -77,20 +77,22 @@ def intercepted_send_sync(self, event, data, sid=None):
     if event == "execution_success":
         _log("After execution_success event sent")
         prompt_id = data['prompt_id']
-        client_id = g_pending_prompts[prompt_id]
-        # call send_execution_success in a background thread
-        threading.Thread(target=send_execution_success, args=(prompt_id, client_id), daemon=True).start()
+        if prompt_id in g_pending_prompts:
+            client_id = g_pending_prompts[prompt_id]
+            # call send_execution_success in a background thread
+            threading.Thread(target=send_execution_success, args=(prompt_id, client_id), daemon=True).start()
     elif event == "execution_error":
         prompt_id = data['prompt_id']
-        client_id = g_pending_prompts[prompt_id]
-        _log("After execution_error event sent " + prompt_id)
-        _log(json.dumps(data))
-        exception_type = data['exception_type']
-        exception_message = data['exception_message']
-        traceback = data['traceback']
-        # call send_execution_error in a background thread
-        threading.Thread(target=send_execution_error, 
-            args=(prompt_id, client_id, exception_type, exception_message, traceback), daemon=True).start()    
+        if prompt_id in g_pending_prompts:
+            client_id = g_pending_prompts[prompt_id]
+            _log("After execution_error event sent " + prompt_id)
+            _log(json.dumps(data))
+            exception_type = data['exception_type']
+            exception_message = data['exception_message']
+            traceback = data['traceback']
+            # call send_execution_error in a background thread
+            threading.Thread(target=send_execution_error, 
+                args=(prompt_id, client_id, exception_type, exception_message, traceback), daemon=True).start()    
         
     
     return result
