@@ -298,7 +298,24 @@ def listen_to_messages_poll():
                 g_assigned_prompts.clear()
 
             _log("Polling for agent events")
-            response = g_client.get(GetComfyAgentEvents(device_id=DEVICE_ID, poll=True))
+            request = GetComfyAgentEvents(device_id=DEVICE_ID)
+            # get prompt ids of queued prompts
+            current_queue = PromptServer.instance.prompt_queue.get_current_queue()
+            queue_running = current_queue[0]
+            queue_pending = current_queue[1]
+            
+            # get running generation ids (client_id) (max 20)
+            request.running_generation_ids = [entry[3]['client_id'] for entry in queue_running 
+                if len(entry[3] and entry[3]['client_id'] or '') == 32][:20]
+
+            # get queued generation ids (client_id) (max 20)
+            request.queued_generation_ids = [entry[3]['client_id'] for entry in queue_pending 
+                if len(entry[3] and entry[3]['client_id'] or '') == 32][:20]
+            request.queue_count = len(queue_running) + len(queue_pending)
+
+            _log(f"GetComfyAgentEvents count={request.queue_count}, running={request.running_generation_ids}, queued={request.queued_generation_ids}")
+
+            response = g_client.get(request)
             retry_secs = 5
             if response.results is not None:
                 event_names = [event.name for event in response.results]
