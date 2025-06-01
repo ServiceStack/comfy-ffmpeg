@@ -30,10 +30,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
   sed -i 's/^torchaudio$/torchaudio~=2.7.0/' requirements.txt && \
   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
 
-# HACK, we want to include apiKey in the prompt call if it is present
-# /opt/conda/lib/python3.11/site-packages
-RUN sed -i 's/ = this.requestHeader;/ = this.requestHeader; if (localStorage.apikey) fetchOptions.headers.Authorization=`Bearer ${localStorage.apikey}`;/' $(python -c "import sysconfig; print(sysconfig.get_path('purelib'))")/comfyui_frontend_package/static/assets/index-0j2RaeNn.js
-
 RUN rm -rf ${ROOT}/custom_nodes ${ROOT}/input ${ROOT}/models ${ROOT}/notebooks ${ROOT}/output && \
     mkdir -p ${DATA}/.cache ${DATA}/user ${DATA}/custom_nodes ${DATA}/input ${DATA}/models ${DATA}/notebooks ${DATA}/output
 

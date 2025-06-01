@@ -1,4 +1,4 @@
-ltdrdata/ComfyUI-Manager
-pythongosssss/ComfyUI-Custom-Scripts
-MoonHugo/ComfyUI-FFmpeg
-ServiceStack/comfy-asset-downloader
+https://github.com/ltdrdata/ComfyUI-Manager
+https://github.com/pythongosssss/ComfyUI-Custom-Scripts
+https://github.com/MoonHugo/ComfyUI-FFmpeg
+https://github.com/ServiceStack/comfy-asset-downloader
