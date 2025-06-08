@@ -1,5 +1,5 @@
 """ Options:
-Date: 2025-06-08 11:41:57
+Date: 2025-06-08 12:00:24
 Version: 8.81
 Tip: To override a DTO option, remove "#" prefix before updating
 BaseUrl: https://comfy-gateway.pvq.app
@@ -30,10 +30,10 @@ from enum import Enum, IntEnum
 @dataclass
 class GpuInfo:
     index: int = 0
+    name: Optional[str] = None
     total: int = 0
     free: int = 0
     used: int = 0
-    name: Optional[str] = None
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
@@ -104,8 +104,8 @@ class RegisterComfyAgent(IReturn[RegisterComfyAgentResponse], IPost):
     device_id: Optional[str] = None
 
     workflows: List[str] = field(default_factory=list)
-    gpus: Optional[List[GpuInfo]] = None
     queue_count: int = 0
+    gpus: Optional[List[GpuInfo]] = None
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
@@ -124,6 +124,7 @@ class UpdateComfyAgent(IReturn[EmptyResponse], IPost):
     device_id: Optional[str] = None
 
     queue_count: int = 0
+    gpus: Optional[List[GpuInfo]] = None
     running_prompts: Optional[List[str]] = None
     queued_prompts: Optional[List[str]] = None
 
@@ -141,6 +142,7 @@ class UpdateWorkflowGeneration(IReturn[EmptyResponse], IPost):
     status: Optional[str] = None
     outputs: Optional[str] = None
     queue_count: Optional[int] = None
+    gpus: Optional[List[GpuInfo]] = None
     error: Optional[ResponseStatus] = None
 
 

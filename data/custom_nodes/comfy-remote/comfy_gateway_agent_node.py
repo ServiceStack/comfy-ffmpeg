@@ -340,7 +340,8 @@ def send_update():
     try:
         request = UpdateComfyAgent(
             device_id=DEVICE_ID,
-            queue_count=get_queue_count())
+            queue_count=get_queue_count(),
+            gpus=gpu_infos())
         _log(f"send_update: queue_count={request.queue_count}")
         g_client.post(request)
     except WebServiceException as ex:
@@ -383,6 +384,7 @@ def exec_prompt(url):
         return
 
     client_id = prompt_data['client_id']
+    gpus = gpu_infos()
 
     # check if client_id is a value in g_pending_prompts
     for key, value in g_pending_prompts.items():
@@ -390,7 +392,7 @@ def exec_prompt(url):
             prompt_id = key
             _log(f"exec_prompt: client_id={client_id} already in progress prompt_id={prompt_id}")
             g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, prompt_id=prompt_id,
-                queue_count=get_queue_count()))
+                queue_count=get_queue_count(), gpus=gpus))
             return
 
     _log(f"exec_prompt: /prompt client_id={client_id}")
@@ -409,12 +411,13 @@ def exec_prompt(url):
 
         g_pending_prompts[prompt_id] = client_id
         g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, prompt_id=prompt_id,
-            queue_count=get_queue_count()))
+            queue_count=get_queue_count(), gpus=gpus))
     else:
         error_message = f"Error: {response.status_code} - {response.text}"
         _log(error_message)
         _log(json.dumps(prompt_data))
-        g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, queue_count=get_queue_count(), 
+        g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, 
+            queue_count=get_queue_count(), gpus=gpus,
             error={"error_code": response.status_code, "message": response.text}))
 
 
@@ -424,7 +427,7 @@ def on_prompt_handler(json_data):
         threading.Thread(target=send_update, daemon=True).start()
     return json_data
 
-def get_GpuInfos():
+def gpu_infos():
     #get info of gpus from $nvidia-smi --query-gpu=index,memory.total,memory.free,memory.used --format=csv,noheader,nounits
     # example output: 0, 16303, 13991, 1858
     gpus = []
@@ -441,7 +444,7 @@ def get_GpuInfos():
     return gpus
 
 def gpus_as_jsv():
-    gpus = get_GpuInfos()
+    gpus = gpu_infos()
     # complex types on the query string need to be sent with JSV format
     ret = ','.join(['{' + f"index:{gpu.index},name:\"{gpu.name}\",total:{gpu.total},free:{gpu.free},used:{gpu.used}" + '}' for gpu in gpus])
     return ret
