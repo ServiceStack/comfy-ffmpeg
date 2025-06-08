@@ -461,40 +461,33 @@ def register_agent():
     object_info = get_object_info()
     object_info_json = json.dumps(object_info)
 
-    try:
+    object_info = UploadFile(
+        field_name="object_info",
+        file_name="object_info.json",
+        content_type="application/json",
+        stream=io.BytesIO(object_info_json.encode('utf-8')))
+    
+    response = g_client.post_file_with_request(
+        request=RegisterComfyAgent(
+            device_id=DEVICE_ID,
+            workflows=workflows,
+            gpus=gpus_as_jsv(),
+            queue_count=get_queue_count()
+        ),
+        file=object_info)
 
-        object_info = UploadFile(
-            field_name="object_info",
-            file_name="object_info.json",
-            content_type="application/json",
-            stream=io.BytesIO(object_info_json.encode('utf-8')))
-        
-        response = g_client.post_file_with_request(
-            request=RegisterComfyAgent(
-                device_id=DEVICE_ID,
-                workflows=workflows,
-                gpus=gpus_as_jsv(),
-                queue_count=get_queue_count()
-            ),
-            file=object_info)
+    _log(f"Registered device with {BASE_URL}")
+    printdump(response)
 
-        _log(f"Registered device with {BASE_URL}")
-        printdump(response)
+    # check if response.tags is an array with items
+    if isinstance(response.tags, list):
+        global g_primary_tags
+        g_primary_tags = response.tags
 
-        # check if response.tags is an array with items
-        if isinstance(response.tags, list):
-            global g_primary_tags
-            g_primary_tags = response.tags
+    _log(f"Pending prompts: {len(response.pending_prompts)}")
+    if (isinstance(response.pending_prompts, list) and len(response.pending_prompts) > 0):
+        g_assigned_prompts = response.pending_prompts
 
-        _log(f"Pending prompts: {len(response.pending_prompts)}")
-        if (isinstance(response.pending_prompts, list) and len(response.pending_prompts) > 0):
-            g_assigned_prompts = response.pending_prompts
-
-        return True
-
-    except Exception as e:
-        _log(f"Error registering device: {e}")
-        return False
 
 def setup_connection():
     """
@@ -517,12 +510,17 @@ def setup_connection():
 
     if g_current_config["enabled"]:
 
-        success = register_agent()
+        try:
+            register_agent()
 
-        # listen to messages in a background thread
-        t = threading.Thread(target=listen_to_messages_poll, daemon=True)
-        t.start()
+            # listen to messages in a background thread
+            t = threading.Thread(target=listen_to_messages_poll, daemon=True)
+            t.start()
+        except Exception as e:
+            _log(f"Error registering device: {e}")
+            raise e
 
+    
     else:
         _log("Autostart is disabled by default server configuration.")
 
