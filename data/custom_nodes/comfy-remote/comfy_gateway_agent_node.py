@@ -424,6 +424,28 @@ def on_prompt_handler(json_data):
         threading.Thread(target=send_update, daemon=True).start()
     return json_data
 
+def get_GpuInfos():
+    #get info of gpus from $nvidia-smi --query-gpu=index,memory.total,memory.free,memory.used --format=csv,noheader,nounits
+    # example output: 0, 16303, 13991, 1858
+    gpus = []
+    output = ''
+    try:
+        output = subprocess.check_output(['nvidia-smi', '--query-gpu=index,name,memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'])
+        lines = output.decode('utf-8').strip().split('\n')
+        for line in lines:
+            index, name, total, free, used = line.split(',')
+            gpu = GpuInfo(index=int(index),name=name,total=int(total),free=int(free),used=int(used))
+            gpus.append(gpu)
+    except Exception as e:
+        _log(f"Error getting GPU info: {e}\n{output}")
+    return gpus
+
+def gpus_as_jsv():
+    gpus = get_GpuInfos()
+    # complex types on the query string need to be sent with JSV format
+    ret = ','.join(['{' + f"index:{gpu.index},name:\"{gpu.name}\",total:{gpu.total},free:{gpu.free},used:{gpu.used}" + '}' for gpu in gpus])
+    return ret
+
 def register_agent():
     # get workflows from user/default/workflows
     user_dir = get_user_directory()
@@ -435,23 +457,6 @@ def register_agent():
 
     object_info = get_object_info()
     object_info_json = json.dumps(object_info)
-
-    #get info of gpus from $nvidia-smi --query-gpu=index,memory.total,memory.free,memory.used --format=csv,noheader,nounits
-    # example output: 0, 16303, 13991, 1858
-    gpus = []
-    output = ''
-    try:
-        output = subprocess.check_output(['nvidia-smi', '--query-gpu=index,memory.total,memory.free,memory.used', '--format=csv,noheader,nounits'])
-        lines = output.decode('utf-8').strip().split('\n')
-        for line in lines:
-            index, total, free, used = line.split(',')
-            gpu = GpuInfo(index=int(index),total=int(total),free=int(free),used=int(used))
-            gpus.append(gpu)
-    except Exception as e:
-        _log(f"Error getting GPU info: {e}\n{output}")
-
-    # complex types on the query string need to be sent with JSV format
-    gpus_as_jsv = ','.join(['{' + f"index:{gpu.index},total:{gpu.total},free:{gpu.free},used:{gpu.used}" + '}' for gpu in gpus])
 
     try:
 
@@ -465,7 +470,7 @@ def register_agent():
             request=RegisterComfyAgent(
                 device_id=DEVICE_ID,
                 workflows=workflows,
-                gpus=gpus_as_jsv,
+                gpus=gpus_as_jsv(),
                 queue_count=get_queue_count()
             ),
             file=object_info)

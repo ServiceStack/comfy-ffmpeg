@@ -1,5 +1,5 @@
 """ Options:
-Date: 2025-06-01 16:46:18
+Date: 2025-06-08 11:41:57
 Version: 8.81
 Tip: To override a DTO option, remove "#" prefix before updating
 BaseUrl: https://comfy-gateway.pvq.app
@@ -33,6 +33,7 @@ class GpuInfo:
     total: int = 0
     free: int = 0
     used: int = 0
+    name: Optional[str] = None
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
