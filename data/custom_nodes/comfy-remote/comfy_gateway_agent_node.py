@@ -434,7 +434,7 @@ def get_GpuInfos():
         lines = output.decode('utf-8').strip().split('\n')
         for line in lines:
             index, name, total, free, used = line.split(',')
-            gpu = GpuInfo(index=int(index),name=name,total=int(total),free=int(free),used=int(used))
+            gpu = GpuInfo(index=int(index),name=name.strip(),total=int(total),free=int(free),used=int(used))
             gpus.append(gpu)
     except Exception as e:
         _log(f"Error getting GPU info: {e}\n{output}")
