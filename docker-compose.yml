@@ -73,7 +73,7 @@ services:
     profiles:
       - gpu2
     image: servicestack/comfy-ffmpeg:latest
-    container_name: comfy-ffmpeg-1
+    container_name: comfy-ffmpeg-2
     networks:
       - comfy-network
     ports:
