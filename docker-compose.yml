@@ -77,7 +77,7 @@ services:
     networks:
       - comfy-network
     ports:
-      - "7861:7860"
+      - "7862:7860"
     volumes:
       # Shared folders - same as original service
       - ./data/.cache:/data/.cache
