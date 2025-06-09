@@ -1,2 +1,4 @@
-nsfw/640m.onnx              https://huggingface.co/ServiceStack/comfy-gateway/resolve/main/640m.onnx
-nsfw/erax_nsfw_yolo11m.pt   https://huggingface.co/ServiceStack/comfy-gateway/resolve/main/erax_nsfw_yolo11m.pt
+nsfw/640m.onnx                           https://huggingface.co/ServiceStack/comfy-gateway/resolve/main/640m.onnx
+nsfw/erax_nsfw_yolo11m.pt                https://huggingface.co/ServiceStack/comfy-gateway/resolve/main/erax_nsfw_yolo11m.pt
+clip_vision/wd-v1-4-moat-tagger-v2.onnx  https://huggingface.co/ServiceStack/comfy-gateway/resolve/main/wd-v1-4-moat-tagger-v2.onnx
+clip_vision/wd-v1-4-moat-tagger-v2.csv   https://huggingface.co/ServiceStack/comfy-gateway/resolve/main/wd-v1-4-moat-tagger-v2.csv

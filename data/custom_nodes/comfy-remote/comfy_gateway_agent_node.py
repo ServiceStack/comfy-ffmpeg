@@ -20,16 +20,16 @@ from folder_paths import get_user_directory, get_directory_by_type, models_dir
 
 from .dtos import *
 from servicestack.clients import UploadFile
-from servicestack import JsonServiceClient, printdump
+from servicestack import JsonServiceClient, printdump, WebServiceException, ResponseStatus
 
 from PIL import Image, ImageOps
 from PIL.PngImagePlugin import PngInfo
 
-from .classifier import classify_image_rating, classify_image_tags, load_clip, detect_objects
+from .classifier import classify_image_rating, classify_image_categories, classify_image_tags, load_clip, detect_objects, classify_image_tags, load_wd14_model
 
 g_current_config = {}  # Stores the active configuration for the global poller
 g_logger_prefix = "[ComfyGatewayLogger]"
-g_primary_tags = []
+g_categories = []
 g_assigned_prompts = []
 
 # --- Default Configuration for Autostart ---
@@ -147,18 +147,26 @@ def send_execution_success(prompt_id, client_id):
             start_time = time.time()
             artiract_objects = detect_objects(os.path.join(models_dir, "nsfw"), image_paths)
             elapsed_time = time.time() - start_time
-            print(f"detect_objects took {elapsed_time:.2f}s", image_paths, len(artiract_objects))
+            _log(f"detect_objects took {elapsed_time:.2f}s", image_paths, len(artiract_objects))
             printdump(artiract_objects)
         except Exception as e:
-            print(f"Error in detect_objects: {e}")
+            _log(f"Error in detect_objects: {e}")
 
         try:
             start_time = time.time()
-            device, model, preprocess = load_clip()
+            device, ratings_model, preprocess = load_clip()
             elapsed_time = time.time() - start_time
-            print(f"Loaded ratings clip model in {elapsed_time:.2f}s")
+            _log(f"Loaded ratings clip model in {elapsed_time:.2f}s")
         except Exception as e:
-            print(f"Error loading clip model: {e}")
+            _log(f"Error loading clip model: {e}")
+
+        try:
+            start_time = time.time()
+            tags_model, tag_names = load_wd14_model(os.path.join(models_dir, "clip_vision"))
+            elapsed_time = time.time() - start_time
+            _log(f"Loaded WD v14 tag model in {elapsed_time:.2f}s")
+        except Exception as e:
+            _log(f"Error loading WD v14 tag model: {e}")
 
         files = []
         for image in artifacts:
@@ -168,7 +176,7 @@ def send_execution_success(prompt_id, client_id):
             ext = image['filename'].split('.')[-1].lower()
 
             ratings = None
-            tags = None
+            categories = None
             # convert png to webp
             if ext == "png":
                 with Image.open(image_path) as img:
@@ -183,23 +191,39 @@ def send_execution_success(prompt_id, client_id):
                     image['height'] = img.height
                     if device is not None:
                         start_time = time.time()
-                        ratings = classify_image_rating(img, device, model, preprocess)
-                        if len(g_primary_tags) > 0:
-                            tags = classify_image_tags(img, g_primary_tags, device, model, preprocess)
+                        ratings = classify_image_rating(img, device, ratings_model, preprocess)
+                        end_time_ratings = time.time()
+                        if len(g_categories) > 0:
+                            categories = classify_image_categories(img, g_categories, device, ratings_model, preprocess)
+                        end_time_categories = time.time()
+                        if tags_model is not None:
+                            tags = classify_image_tags(tags_model, tag_names, img)
+                        end_time_tags = time.time()
                         elapsed_time = time.time() - start_time
-                        print(f"Classified image rating and tags in {elapsed_time:.2f}s")
+                        times = [f"ratings in {end_time_ratings - start_time:.2f}s"]
+                        if categories is not None:
+                            times.append(f"categories in {end_time_categories - end_time_ratings:.2f}s")
+                        if tags is not None:
+                            times.append(f"tags in {end_time_tags - end_time_categories:.2f}s")
+                        _log(f"Classified {image['filename']} in {elapsed_time:.2f}s: {', '.join(times)}")
             else:
                 if (ext == "jpg" or "jpeg" or "webp" or "gif" or "bmp" or "tiff") and device is not None:
                     with Image.open(image_path) as img:
-                        ratings = classify_image_rating(img, device, model, preprocess)
-                        if len(g_primary_tags) > 0:
-                            tags = classify_image_tags(img, g_primary_tags, device, model, preprocess)
+                        start_time = time.time()
+                        ratings = classify_image_rating(img, device, ratings_model, preprocess)
+                        if len(g_categories) > 0:
+                            categories = classify_image_categories(img, g_categories, device, ratings_model, preprocess)
+                        if tags_model is not None:
+                            tags = classify_image_tags(tags_model, tag_names, img)
                         image['width'] = img.width
                         image['height'] = img.height
+                        _log(f"Classified {image['filename']} in {elapsed_time:.2f}s")
                 image_stream=open(image_path, 'rb')
 
             if ratings is not None:
                 image['ratings'] = ratings
+            if categories is not None:
+                image['categories'] = categories
             if tags is not None:
                 image['tags'] = tags
             if image_path in artiract_objects:
@@ -480,10 +504,10 @@ def register_agent():
     _log(f"Registered device with {BASE_URL}")
     printdump(response)
 
-    # check if response.tags is an array with items
-    if isinstance(response.tags, list):
-        global g_primary_tags
-        g_primary_tags = response.tags
+    # check if response.categories is an array with items
+    if isinstance(response.categories, list):
+        global g_categories
+        g_categories = response.categories
 
     _log(f"Pending prompts: {len(response.pending_prompts)}")
     if (isinstance(response.pending_prompts, list) and len(response.pending_prompts) > 0):

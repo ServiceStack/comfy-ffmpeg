@@ -15,6 +15,9 @@ import cv2
 import onnxruntime
 from onnxruntime.capi import _pybind_state as C
 
+#WD14 Tagger
+import pandas as pd
+
 # Global model cache to avoid reloading models
 _model_cache = {}
 
@@ -110,12 +113,12 @@ def classify_image_rating(image,device,model,preprocess):
 
     return results
 
-def classify_image_tags(image,tags,device,model,preprocess):
+def classify_image_categories(image,categories,device,model,preprocess):
 
     image_input = preprocess(image).unsqueeze(0).to(device)
 
-    # Prepare text descriptions for tags
-    text_inputs = torch.cat([clip.tokenize(f"an image of {tag}") for tag in tags]).to(device)
+    # Prepare text descriptions for categories
+    text_inputs = torch.cat([clip.tokenize(f"an image of {category}") for category in categories]).to(device)
 
     # Calculate features
     with torch.no_grad():
@@ -129,26 +132,26 @@ def classify_image_tags(image,tags,device,model,preprocess):
     # Calculate similarity scores
     similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1)
 
-    # Get top tags
+    # Get top categories
     values, indices = similarity[0].topk(3)
 
-    # Return top 5 tags with their confidence scores
+    # Return top 5 categories with their confidence scores
     results = {}
     for value, index in zip(values, indices):
-        results[tags[index]] = value.item()
+        results[categories[index]] = value.item()
 
     return results
 
-def classify_image_tags_transformers(image, tags, device, model, processor):
+def classify_image_categories_transformers(image, categories, device, model, processor):
     """
-    Classify image tags using transformers CLIP models (CLIP-G, CLIP-L)
+    Classify image categories using transformers CLIP models (CLIP-G, CLIP-L)
     """
     # Prepare image
     inputs = processor(images=image, return_tensors="pt", padding=True)
     image_input = inputs['pixel_values'].to(device)
 
-    # Prepare text descriptions for tags
-    text_descriptions = [f"an image of {tag}" for tag in tags]
+    # Prepare text descriptions for categories
+    text_descriptions = [f"an image of {category}" for category in categories]
     text_inputs = processor(text=text_descriptions, return_tensors="pt", padding=True, truncation=True)
     text_input_ids = text_inputs['input_ids'].to(device)
     text_attention_mask = text_inputs['attention_mask'].to(device)
@@ -167,13 +170,13 @@ def classify_image_tags_transformers(image, tags, device, model, processor):
         # Calculate similarity scores
         similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1)
 
-        # Get top tags
-        values, indices = similarity[0].topk(min(3, len(tags)))
+        # Get top categories
+        values, indices = similarity[0].topk(min(3, len(categories)))
 
-        # Return top tags with their confidence scores
+        # Return top categories with their confidence scores
         results = {}
         for value, index in zip(values, indices):
-            results[tags[index]] = value.item()
+            results[categories[index]] = value.item()
 
     return results
 
@@ -459,4 +462,77 @@ def detect_objects(models_dir, image_paths):
         image_results = ret[image_paths[i]] if image_paths[i] in ret else []
         image_results.extend(detections)
     
+    return ret
+
+def load_wd14_model(models_dir):
+    model_path = os.path.join(models_dir, "wd-v1-4-moat-tagger-v2.onnx") # 326M
+    csv_path = os.path.join(models_dir, "wd-v1-4-moat-tagger-v2.csv") # 246K
+
+    # Load the ONNX model with specific providers and session options
+    providers = ['CPUExecutionProvider']  # Force CPU to avoid GPU issues
+    session_options = onnxruntime.SessionOptions()
+    session_options.enable_cpu_mem_arena = False  # Disable memory arena to avoid caching issues
+    session_options.enable_mem_pattern = False    # Disable memory pattern optimization
+
+    model = onnxruntime.InferenceSession(model_path, sess_options=session_options, providers=providers)
+    
+    # Load the tags CSV
+    tags_df = pd.read_csv(csv_path)
+    tag_names = tags_df['name'].tolist()
+    return model, tag_names
+
+def pairs_to_dict(kvpairs):
+    return {k: v for k, v in kvpairs}
+
+def classify_image_tags(model, tag_names, image, threshold=0.6, debug=False):
+    # Preprocess image
+
+    # Get input details
+    input = model.get_inputs()[0]
+    input_name = model.get_inputs()[0].name
+    output_name = model.get_outputs()[0].name
+    height = input.shape[1]
+
+    # Reduce to max size and pad with white
+    ratio = float(height)/max(image.size)
+    new_size = tuple([int(x*ratio) for x in image.size])
+    resized_image = image.resize(new_size, Image.LANCZOS)
+    square = Image.new("RGB", (height, height), (255, 255, 255))
+    square.paste(resized_image, ((height-new_size[0])//2, (height-new_size[1])//2))
+
+    processed_image = np.array(square).astype(np.float32)
+    processed_image = processed_image[:, :, ::-1]  # RGB -> BGR
+    processed_image = np.expand_dims(processed_image, 0)
+
+    if processed_image is None:
+        return {}
+
+    try:
+        outputs = model.run([output_name], {input_name: processed_image})
+        predictions = outputs[0][0]  # Remove batch dimension
+
+        # Filter tags by threshold
+        predicted_tags = []
+        for i, score in enumerate(predictions):
+            if score > threshold:
+                tag_name = tag_names[i]
+                predicted_tags.append((tag_name, float(score)))
+
+        # Sort by confidence score (descending)
+        predicted_tags.sort(key=lambda x: x[1], reverse=True)
+        
+        tags_dict = pairs_to_dict(predicted_tags)
+        return tags_dict
+
+    except Exception as e:
+        print(f"Error predicting tags for {image_path}: {e}")
+        return {}
+
+def classify_images_tags(model, tag_names, image_paths, threshold=0.6, debug=False):
+    ret = {}
+    for image_path in image_paths:
+        # Open and convert image
+        with Image.open(image_path) as image:
+            ret[image_path] = classify_image_tags(model, tag_names, image, threshold=threshold, debug=debug)
+
     return ret
