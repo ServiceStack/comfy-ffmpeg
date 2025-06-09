@@ -297,6 +297,8 @@ def listen_to_messages_poll():
                 # clear pending prompts
                 g_assigned_prompts.clear()
 
+            send_update(sleep=0)
+
             _log("Polling for agent events")
             request = GetComfyAgentEvents(device_id=DEVICE_ID)
             # get prompt ids of queued prompts
@@ -335,8 +337,9 @@ def listen_to_messages_poll():
 def get_queue_count():
     return PromptServer.instance.get_queue_info()['exec_info']['queue_remaining']
 
-def send_update():
-    time.sleep(0.1)
+def send_update(sleep=0.1):
+    if sleep > 0:
+        time.sleep(sleep)
     try:
         request = UpdateComfyAgent(
             device_id=DEVICE_ID,
@@ -384,7 +387,6 @@ def exec_prompt(url):
         return
 
     client_id = prompt_data['client_id']
-    gpus = gpu_infos()
 
     # check if client_id is a value in g_pending_prompts
     for key, value in g_pending_prompts.items():
@@ -392,7 +394,7 @@ def exec_prompt(url):
             prompt_id = key
             _log(f"exec_prompt: client_id={client_id} already in progress prompt_id={prompt_id}")
             g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, prompt_id=prompt_id,
-                queue_count=get_queue_count(), gpus=gpus))
+                queue_count=get_queue_count()))
             return
 
     _log(f"exec_prompt: /prompt client_id={client_id}")
@@ -411,13 +413,12 @@ def exec_prompt(url):
 
         g_pending_prompts[prompt_id] = client_id
         g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, prompt_id=prompt_id,
-            queue_count=get_queue_count(), gpus=gpus))
+            queue_count=get_queue_count()))
     else:
         error_message = f"Error: {response.status_code} - {response.text}"
         _log(error_message)
         _log(json.dumps(prompt_data))
-        g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, 
-            queue_count=get_queue_count(), gpus=gpus,
+        g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, queue_count=get_queue_count(),
             error={"error_code": response.status_code, "message": response.text}))
 
 
@@ -471,7 +472,7 @@ def register_agent():
         request=RegisterComfyAgent(
             device_id=DEVICE_ID,
             workflows=workflows,
-            gpus=gpus_as_jsv(),
+            gpus=gpu_infos(),
             queue_count=get_queue_count()
         ),
         file=object_info)

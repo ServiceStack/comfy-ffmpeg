@@ -1,5 +1,5 @@
 """ Options:
-Date: 2025-06-08 16:34:28
+Date: 2025-06-08 21:17:28
 Version: 8.81
 Tip: To override a DTO option, remove "#" prefix before updating
 BaseUrl: https://comfy-gateway.pvq.app
@@ -86,14 +86,23 @@ class ComfyTasksResponse:
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
 @dataclass
-class GetComfyAgentEvents(IReturn[GetComfyAgentEventsResponse], IGet):
+class UpdateComfyAgent(IReturn[EmptyResponse], IPost):
     # @Validate(Validator="NotEmpty")
     # @Validate(Validator="ExactLength(32)")
     device_id: Optional[str] = None
 
     queue_count: int = 0
+    gpus: Optional[List[GpuInfo]] = None
     running_generation_ids: Optional[List[str]] = None
     queued_generation_ids: Optional[List[str]] = None
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
+@dataclass
+class GetComfyAgentEvents(IReturn[GetComfyAgentEventsResponse], IGet):
+    # @Validate(Validator="NotEmpty")
+    # @Validate(Validator="ExactLength(32)")
+    device_id: Optional[str] = None
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
@@ -118,19 +127,6 @@ class UnRegisterComfyAgent(IReturn[EmptyResponse], IPost):
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
 @dataclass
-class UpdateComfyAgent(IReturn[EmptyResponse], IPost):
-    # @Validate(Validator="NotEmpty")
-    # @Validate(Validator="ExactLength(32)")
-    device_id: Optional[str] = None
-
-    queue_count: int = 0
-    gpus: Optional[List[GpuInfo]] = None
-    running_prompts: Optional[List[str]] = None
-    queued_prompts: Optional[List[str]] = None
-
-
-@dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
-@dataclass
 class UpdateWorkflowGeneration(IReturn[EmptyResponse], IPost):
     # @Validate(Validator="NotEmpty")
     id: Optional[str] = None
@@ -142,7 +138,6 @@ class UpdateWorkflowGeneration(IReturn[EmptyResponse], IPost):
     status: Optional[str] = None
     outputs: Optional[str] = None
     queue_count: Optional[int] = None
-    gpus: Optional[List[GpuInfo]] = None
     error: Optional[ResponseStatus] = None
 
 
