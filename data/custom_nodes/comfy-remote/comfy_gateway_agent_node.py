@@ -31,6 +31,7 @@ g_current_config = {}  # Stores the active configuration for the global poller
 g_logger_prefix = "[ComfyGatewayLogger]"
 g_categories = []
 g_assigned_prompts = []
+g_uploaded_prompts = []
 
 # --- Default Configuration for Autostart ---
 # These values are used when ComfyUI starts, before any node instance takes control.
@@ -122,6 +123,11 @@ def send_execution_error(prompt_id, client_id, exception_type, exception_message
 
 def send_execution_success(prompt_id, client_id):
     _log(f"send_execution_success: prompt_id={prompt_id}, client_id={client_id}")
+
+    if prompt_id in g_uploaded_prompts:
+        _log(f"prompt_id={prompt_id} already sent, skipping.")
+        return
+
     try:
         result = PromptServer.instance.prompt_queue.get_history(prompt_id=prompt_id)
         prompt_data = result[prompt_id]
@@ -244,6 +250,7 @@ def send_execution_success(prompt_id, client_id):
             outputs=json.dumps(outputs), 
             status=json.dumps(status))
         g_client.post_files_with_request(request, files)
+        g_uploaded_prompts.append(prompt_id)
     except WebServiceException as ex:
         _log(f"Exception sending execution_success: {ex}")
         printdump(ex.response_status)
