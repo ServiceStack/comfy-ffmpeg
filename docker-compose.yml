@@ -14,11 +14,12 @@ services:
       - ./data/.cache:/data/.cache
       - ./data/models:/data/models
       - ./data/input:/data/input
-      - ./data/output:/data/output
       - ./data/notebooks:/data/notebooks
-      - ./data/user:/data/user
       - ./data/custom_nodes:/data/custom_nodes
       - ./install:/comfy/install
+      # Separate folders for gpu 0
+      - ./data/output:/data/output
+      - ./data/user:/data/user
     environment:
       - CLI_ARGS=--output-directory /data/output --temp-directory /data/output/temp --user-directory /data/user
     env_file:
@@ -30,5 +31,75 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: all
+              device_ids: ['0']
               capabilities: [gpu]
+  # Examples of running on multiple GPUs
+  # GPU 1
+  comfy1:
+    profiles:
+      - gpu2
+    image: servicestack/comfy-ffmpeg:latest
+    container_name: comfy-ffmpeg-1
+    networks:
+      - comfy-network
+    ports:
+      - "7861:7860"
+    volumes:
+      # Shared folders - same as original service
+      - ./data/.cache:/data/.cache
+      - ./data/models:/data/models
+      - ./data/input:/data/input
+      - ./data/notebooks:/data/notebooks
+      - ./data/custom_nodes:/data/custom_nodes
+      - ./install:/comfy/install
+      # Separate folders for user1
+      - ./data/output1:/data/output
+      - ./data/user1:/data/user
+    environment:
+      - CLI_ARGS=--output-directory /data/output --temp-directory /data/output/temp --user-directory /data/user
+    env_file:
+      - path: .env
+        required: false
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['1']
+              capabilities: [gpu]
+  # GPU 2
+  comfy2:
+    profiles:
+      - gpu2
+    image: servicestack/comfy-ffmpeg:latest
+    container_name: comfy-ffmpeg-1
+    networks:
+      - comfy-network
+    ports:
+      - "7861:7860"
+    volumes:
+      # Shared folders - same as original service
+      - ./data/.cache:/data/.cache
+      - ./data/models:/data/models
+      - ./data/input:/data/input
+      - ./data/notebooks:/data/notebooks
+      - ./data/custom_nodes:/data/custom_nodes
+      - ./install:/comfy/install
+      # Separate folders for user2
+      - ./data/output2:/data/output
+      - ./data/user2:/data/user
+    environment:
+      - CLI_ARGS=--output-directory /data/output --temp-directory /data/output/temp --user-directory /data/user
+    env_file:
+      - path: .env
+        required: false
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['2']
+              capabilities: [gpu]
+                            
