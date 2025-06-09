@@ -27,6 +27,9 @@ from PIL.PngImagePlugin import PngInfo
 
 from .classifier import classify_image_rating, classify_image_categories, classify_image_tags, load_clip, detect_objects, classify_image_tags, load_wd14_model
 
+g_server_url = "http://localhost:7860"
+g_headers={"Content-Type": "application/json"}
+
 g_current_config = {}  # Stores the active configuration for the global poller
 g_logger_prefix = "[ComfyGatewayLogger]"
 g_categories = []
@@ -307,8 +310,22 @@ def get_object_info():
             logging.error(traceback.format_exc())
     return out
 
+def get_object_info_json():
+    return json.dumps(get_object_info())
+
+def get_object_info_json_from_url():
+    json = requests.get(f"{g_server_url}/api/object_info").text
+    return json
+
 def listen_to_messages_poll():
     retry_secs = 5
+    time.sleep(1)
+    try:
+        register_agent()
+    except Exception as ex:
+        _log(f"Error registering agent: {ex}")
+        return
+
     while g_current_config["enabled"]:
         try:
 
@@ -398,8 +415,6 @@ def exec_prompt(url):
     # Get the server address - typically localhost when running within ComfyUI
     # server_address = PromptServer.instance.server_address
     # host, port = server_address if server_address else ("127.0.0.1", 7860)
-    server_url = "http://localhost:7860"
-    headers={"Content-Type": "application/json"}
 
     #if relative path, combine with BASE_URL
     if not url.startswith("http"):
@@ -407,7 +422,7 @@ def exec_prompt(url):
 
     _log(f"exec_prompt GET: {url}")
 
-    api_response = requests.get(url, headers=headers, timeout=30)
+    api_response = requests.get(url, headers=g_headers, timeout=30)
     if api_response.status_code != 200:
         _log(f"Error: {api_response.status_code} - {api_response.text}")
         return
@@ -432,9 +447,9 @@ def exec_prompt(url):
 
     # Call the /prompt endpoint
     response = requests.post(
-        f"{server_url}/prompt",
+        f"{g_server_url}/prompt",
         json=prompt_data,
-        headers=headers)
+        headers=g_headers)
 
     if response.status_code == 200:
         result = response.json()
@@ -490,10 +505,9 @@ def register_agent():
     if os.path.exists(workflows_dir):
         workflows = [f for f in os.listdir(workflows_dir) if f.endswith(".json") and not f.startswith(".")]
 
-    object_info = get_object_info()
-    object_info_json = json.dumps(object_info)
+    object_info_json = get_object_info_json()
 
-    object_info = UploadFile(
+    object_info_file = UploadFile(
         field_name="object_info",
         file_name="object_info.json",
         content_type="application/json",
@@ -506,7 +520,7 @@ def register_agent():
             gpus=gpu_infos(),
             queue_count=get_queue_count()
         ),
-        file=object_info)
+        file=object_info_file)
 
     _log(f"Registered device with {BASE_URL}")
     printdump(response)
@@ -543,7 +557,7 @@ def setup_connection():
     if g_current_config["enabled"]:
 
         try:
-            register_agent()
+            # register_agent()
 
             # listen to messages in a background thread
             t = threading.Thread(target=listen_to_messages_poll, daemon=True)
