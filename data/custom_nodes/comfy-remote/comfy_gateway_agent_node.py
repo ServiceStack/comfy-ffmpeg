@@ -349,21 +349,6 @@ def listen_to_messages_poll():
 
             _log("Polling for agent events")
             request = GetComfyAgentEvents(device_id=DEVICE_ID)
-            # get prompt ids of queued prompts
-            current_queue = PromptServer.instance.prompt_queue.get_current_queue()
-            queue_running = current_queue[0]
-            queue_pending = current_queue[1]
-            
-            # get running generation ids (client_id) (max 20)
-            request.running_generation_ids = [entry[3]['client_id'] for entry in queue_running 
-                if len(entry[3] and entry[3]['client_id'] or '') == 32][:20]
-
-            # get queued generation ids (client_id) (max 20)
-            request.queued_generation_ids = [entry[3]['client_id'] for entry in queue_pending 
-                if len(entry[3] and entry[3]['client_id'] or '') == 32][:20]
-            request.queue_count = len(queue_running) + len(queue_pending)
-
-            _log(f"GetComfyAgentEvents count={request.queue_count}, running={request.running_generation_ids}, queued={request.queued_generation_ids}")
 
             response = g_client.get(request)
             retry_secs = 5
@@ -389,11 +374,22 @@ def send_update(sleep=0.1):
     if sleep > 0:
         time.sleep(sleep)
     try:
-        request = UpdateComfyAgent(
-            device_id=DEVICE_ID,
-            queue_count=get_queue_count(),
-            gpus=gpu_infos())
-        _log(f"send_update: queue_count={request.queue_count}")
+        current_queue = PromptServer.instance.prompt_queue.get_current_queue()
+        queue_running = current_queue[0]
+        queue_pending = current_queue[1]
+
+        request = UpdateComfyAgent(device_id=DEVICE_ID, gpus=gpu_infos(),
+            queue_count=len(queue_running) + len(queue_pending))
+        request.queue_count = len(queue_running) + len(queue_pending)
+        
+        # get running generation ids (client_id) (max 20)
+        request.running_generation_ids = [entry[3]['client_id'] for entry in queue_running 
+            if len(entry[3] and entry[3]['client_id'] or '') == 32][:20]
+        # get queued generation ids (client_id) (max 20)
+        request.queued_generation_ids = [entry[3]['client_id'] for entry in queue_pending 
+            if len(entry[3] and entry[3]['client_id'] or '') == 32][:20]
+        
+        _log(f"send_update: queue_count={request.queue_count}, running={request.running_generation_ids}, queued={request.queued_generation_ids}")
         g_client.post(request)
     except WebServiceException as ex:
         status = ex.response_status
