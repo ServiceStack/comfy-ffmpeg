@@ -1,5 +1,5 @@
 """ Options:
-Date: 2025-06-10 11:34:01
+Date: 2025-06-10 11:41:04
 Version: 8.81
 Tip: To override a DTO option, remove "#" prefix before updating
 BaseUrl: https://comfy-gateway.pvq.app
@@ -103,8 +103,6 @@ class GetComfyAgentEvents(IReturn[GetComfyAgentEventsResponse], IGet):
     # @Validate(Validator="NotEmpty")
     # @Validate(Validator="ExactLength(32)")
     device_id: Optional[str] = None
-
-    queue_count: int = 0
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
