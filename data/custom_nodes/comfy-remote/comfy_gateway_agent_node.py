@@ -14,19 +14,24 @@ import json
 import server # ComfyUI's server instance
 import nodes
 import subprocess
+import logging
+import traceback
 
 from server import PromptServer
 from folder_paths import get_user_directory, get_directory_by_type, models_dir
 
-from .dtos import *
+from .dtos import (
+    RegisterComfyAgent, GetComfyAgentEvents, UpdateComfyAgent, UpdateWorkflowGeneration, GpuInfo
+)
 from servicestack.clients import UploadFile
 from servicestack import JsonServiceClient, printdump, WebServiceException, ResponseStatus
 
 from PIL import Image, ImageOps
 from PIL.PngImagePlugin import PngInfo
 
-from .classifier import classify_image_rating, classify_image_categories, classify_image_tags, load_clip, detect_objects, classify_image_tags, load_wd14_model
+from .classifier import load_image_models, classify_image
 
+g_models = None
 g_server_url = "http://localhost:7860"
 g_headers={"Content-Type": "application/json"}
 
@@ -52,6 +57,8 @@ g_client = None
 
 # Maintain a global dictionary of prompt_id mapping to client_id
 g_pending_prompts = {}
+
+g_models = None
 
 def create_client():
     client = JsonServiceClient(BASE_URL)
@@ -148,34 +155,7 @@ def send_execution_success(prompt_id, client_id):
             if 'images' in value:
                 artifacts.extend(value['images'])
         # outputs = {"images": artifacts}
-        _log(json.dumps(artifacts))
-
-        artiract_objects = {}
-        image_paths = [os.path.join(get_directory_by_type(image['type']), image['subfolder'], image['filename']) for image in artifacts]
-        try:
-            start_time = time.time()
-            artiract_objects = detect_objects(os.path.join(models_dir, "nsfw"), image_paths)
-            elapsed_time = time.time() - start_time
-            _log(f"detect_objects took {elapsed_time:.2f}s", image_paths, len(artiract_objects))
-            printdump(artiract_objects)
-        except Exception as e:
-            _log(f"Error in detect_objects: {e}")
-
-        try:
-            start_time = time.time()
-            device, ratings_model, preprocess = load_clip()
-            elapsed_time = time.time() - start_time
-            _log(f"Loaded ratings clip model in {elapsed_time:.2f}s")
-        except Exception as e:
-            _log(f"Error loading clip model: {e}")
-
-        try:
-            start_time = time.time()
-            tags_model, tag_names = load_wd14_model(os.path.join(models_dir, "clip_vision"))
-            elapsed_time = time.time() - start_time
-            _log(f"Loaded WD v14 tag model in {elapsed_time:.2f}s")
-        except Exception as e:
-            _log(f"Error loading WD v14 tag model: {e}")
+        _log(json.dumps(artifacts, indent=2))
 
         files = []
         for image in artifacts:
@@ -184,8 +164,6 @@ def send_execution_success(prompt_id, client_id):
             #lowercase extension
             ext = image['filename'].split('.')[-1].lower()
 
-            ratings = None
-            categories = None
             # convert png to webp
             if ext == "png":
                 with Image.open(image_path) as img:
@@ -198,47 +176,14 @@ def send_execution_success(prompt_id, client_id):
                     ext = "webp"
                     image['width'] = img.width
                     image['height'] = img.height
-                    if device is not None:
-                        start_time = time.time()
-                        ratings = classify_image_rating(img, device, ratings_model, preprocess)
-                        end_time_ratings = time.time()
-                        if len(g_categories) > 0:
-                            categories = classify_image_categories(img, g_categories, device, ratings_model, preprocess)
-                        end_time_categories = time.time()
-                        if tags_model is not None:
-                            tags = classify_image_tags(tags_model, tag_names, img)
-                        end_time_tags = time.time()
-                        elapsed_time = time.time() - start_time
-                        times = [f"ratings in {end_time_ratings - start_time:.2f}s"]
-                        if categories is not None:
-                            times.append(f"categories in {end_time_categories - end_time_ratings:.2f}s")
-                        if tags is not None:
-                            times.append(f"tags in {end_time_tags - end_time_categories:.2f}s")
-                        _log(f"Classified {image['filename']} in {elapsed_time:.2f}s: {', '.join(times)}")
+                    metadata = classify_image(g_models, g_categories, img, debug=True)
+                    image.update(metadata)
             else:
                 if (ext == "jpg" or "jpeg" or "webp" or "gif" or "bmp" or "tiff") and device is not None:
                     with Image.open(image_path) as img:
-                        start_time = time.time()
-                        ratings = classify_image_rating(img, device, ratings_model, preprocess)
-                        if len(g_categories) > 0:
-                            categories = classify_image_categories(img, g_categories, device, ratings_model, preprocess)
-                        if tags_model is not None:
-                            tags = classify_image_tags(tags_model, tag_names, img)
-                        image['width'] = img.width
-                        image['height'] = img.height
-                        _log(f"Classified {image['filename']} in {elapsed_time:.2f}s")
+                        metadata = classify_image(g_models, g_categories, img, debug=True)
+                        image.update(metadata)
                 image_stream=open(image_path, 'rb')
-
-            if ratings is not None:
-                image['ratings'] = ratings
-            if categories is not None:
-                image['categories'] = categories
-            if tags is not None:
-                image['tags'] = tags
-            if image_path in artiract_objects:
-                image['objects'] = artiract_objects[image_path]
-            else:
-                print(f"No objects found for {image_path}")
 
             field_name = f"output_{len(files)}"
             files.append(UploadFile(
@@ -280,7 +225,7 @@ def node_info(node_class):
     info['description'] = obj_class.DESCRIPTION if hasattr(obj_class,'DESCRIPTION') else ''
     info['python_module'] = getattr(obj_class, "RELATIVE_PYTHON_MODULE", "nodes")
     info['category'] = 'sd'
-    if hasattr(obj_class, 'OUTPUT_NODE') and obj_class.OUTPUT_NODE == True:
+    if hasattr(obj_class, 'OUTPUT_NODE') and obj_class.OUTPUT_NODE is True:
         info['output_node'] = True
     else:
         info['output_node'] = False
@@ -320,6 +265,9 @@ def get_object_info_json_from_url():
 def listen_to_messages_poll():
     retry_secs = 5
     time.sleep(1)
+    global g_client
+    g_client = create_client()
+
     try:
         register_agent()
     except Exception as ex:
@@ -365,7 +313,7 @@ def listen_to_messages_poll():
             _log(f"Error connecting to {BASE_URL}: {ex}, retrying in {retry_secs}s")
             time.sleep(retry_secs)  # Wait before retrying
             retry_secs += 5 # Exponential backoff
-            client = create_client() # Create new client to force reconnect
+            g_client = create_client() # Create new client to force reconnect
 
 def get_queue_count():
     return PromptServer.instance.get_queue_info()['exec_info']['queue_remaining']
@@ -425,7 +373,7 @@ def exec_prompt(url):
 
     prompt_data = api_response.json()
     if 'client_id' not in prompt_data:
-        _log(f"Error: No client_id in prompt data")
+        _log("Error: No client_id in prompt data")
         return
 
     client_id = prompt_data['client_id']
@@ -643,8 +591,14 @@ if "COMFY_GATEWAY" in os.environ:
             _log(f"Failed to read device ID from {device_id_path}. Generating a new one: {DEVICE_ID}")
 
         try:
-            setup_connection()
-        except Exception as e:
-            _log(f"Could not connect to ComfyGateway: {e}. ")
+            g_models = load_image_models(models_dir=models_dir, debug=True)
+            try:
+                setup_connection()
+            except Exception:
+                logging.error("[ERROR] Could not connect to ComfyGateway.")
+                logging.error(traceback.format_exc())
+        except Exception:
+            logging.error("[ERROR] Could not load models.")
+            logging.error(traceback.format_exc())
     else:
         _log(f"Warning: COMFY_GATEWAY environment variable is not in the correct format. Expected 'BEARER_TOKEN@BASE_URL', got '{os.environ['COMFY_GATEWAY']}'.")
