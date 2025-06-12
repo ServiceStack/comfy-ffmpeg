@@ -183,7 +183,7 @@ def send_execution_success(prompt_id, client_id):
 
                     metadata = classify_image(g_models, g_categories, img, debug=True)
                     image.update(metadata)
-                    image['phash'] = phash(img)
+                    image['phash'] = f"{phash(img)}"
                     image['color'] = dominant_color_hex(img)
     
             field_name = f"output_{len(files)}"
