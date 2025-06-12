@@ -30,6 +30,7 @@ from PIL import Image, ImageOps
 from PIL.PngImagePlugin import PngInfo
 
 from .classifier import load_image_models, classify_image
+from .imagehash import phash, dominant_color_hex
 
 g_models = None
 g_server_url = "http://localhost:7860"
@@ -164,27 +165,27 @@ def send_execution_success(prompt_id, client_id):
             #lowercase extension
             ext = image['filename'].split('.')[-1].lower()
 
-            # convert png to webp
-            if ext == "png":
+            if (ext == "png" or ext == "jpg" or "jpeg" or "webp" or "gif" or "bmp" or "tiff"):
                 with Image.open(image_path) as img:
-                    quality = 90
-                    buffer = io.BytesIO()
-                    img.save(buffer, format='webp', quality=quality)
-                    buffer.seek(0)
-                    image_stream = buffer
-                    image['filename'] = image['filename'].replace(".png", ".webp")
-                    ext = "webp"
                     image['width'] = img.width
                     image['height'] = img.height
+                    # convert png to webp
+                    if ext == "png":
+                        quality = 90
+                        buffer = io.BytesIO()
+                        img.save(buffer, format='webp', quality=quality)
+                        buffer.seek(0)
+                        image_stream = buffer
+                        image['filename'] = image['filename'].replace(".png", ".webp")
+                        ext = "webp"
+                    else:
+                        image_stream=open(image_path, 'rb')
+
                     metadata = classify_image(g_models, g_categories, img, debug=True)
                     image.update(metadata)
-            else:
-                if (ext == "jpg" or "jpeg" or "webp" or "gif" or "bmp" or "tiff") and device is not None:
-                    with Image.open(image_path) as img:
-                        metadata = classify_image(g_models, g_categories, img, debug=True)
-                        image.update(metadata)
-                image_stream=open(image_path, 'rb')
-
+                    image['phash'] = phash(img)
+                    image['color'] = dominant_color_hex(img)
+    
             field_name = f"output_{len(files)}"
             files.append(UploadFile(
                 field_name=field_name,
