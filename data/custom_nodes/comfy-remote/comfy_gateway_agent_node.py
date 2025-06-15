@@ -16,12 +16,15 @@ import nodes
 import subprocess
 import logging
 import traceback
+import base64
 
 from server import PromptServer
 from folder_paths import get_user_directory, get_directory_by_type, models_dir
+from comfyui_version import __version__
 
 from .dtos import (
-    RegisterComfyAgent, GetComfyAgentEvents, UpdateComfyAgent, UpdateWorkflowGeneration, GpuInfo
+    RegisterComfyAgent, GetComfyAgentEvents, UpdateComfyAgent, UpdateWorkflowGeneration, GpuInfo, 
+    CaptionArtifact,
 )
 from servicestack.clients import UploadFile
 from servicestack import JsonServiceClient, printdump, WebServiceException, ResponseStatus
@@ -34,13 +37,15 @@ from .imagehash import phash, dominant_color_hex
 
 g_models = None
 g_server_url = "http://localhost:7860"
-g_headers={"Content-Type": "application/json"}
+g_headers_json={"Content-Type": "application/json"}
+g_headers={}
 
 g_current_config = {}  # Stores the active configuration for the global poller
 g_logger_prefix = "[ComfyGatewayLogger]"
 g_categories = []
 g_assigned_prompts = []
 g_uploaded_prompts = []
+g_language_models = None
 
 # --- Default Configuration for Autostart ---
 # These values are used when ComfyUI starts, before any node instance takes control.
@@ -52,6 +57,7 @@ DEFAULT_REQUEST_TIMEOUT_SECONDS = 60
 BASE_URL= None
 BEARER_TOKEN = None
 DEVICE_ID = None
+OLLAMA_BASE_URL = None
 g_client = None
 
 # --- End of Default Configuration ---
@@ -307,8 +313,10 @@ def listen_to_messages_poll():
                 for event in response.results:
                     if event.name == "Register":
                         register_agent()
-                    if event.name == "ExecWorkflow":
+                    elif event.name == "ExecWorkflow":
                         exec_prompt(event.args['url'])
+                    elif event.name == "CaptionImage":
+                        caption_image(event.args['url'], event.args['model'])
 
         except Exception as ex:
             _log(f"Error connecting to {BASE_URL}: {ex}, retrying in {retry_secs}s")
@@ -351,6 +359,12 @@ def send_update(sleep=0.1):
     except Exception as e:
         _log(f"Error sending update: {e}")
 
+def resolve_url(url):
+    #if relative path, combine with BASE_URL
+    if not url.startswith("http"):
+        url = urljoin(BASE_URL, url)
+    return url
+
 def exec_prompt(url):
 
     if url is None:
@@ -361,13 +375,10 @@ def exec_prompt(url):
     # server_address = PromptServer.instance.server_address
     # host, port = server_address if server_address else ("127.0.0.1", 7860)
 
-    #if relative path, combine with BASE_URL
-    if not url.startswith("http"):
-        url = urljoin(BASE_URL, url)
-
+    url = resolve_url(url)
     _log(f"exec_prompt GET: {url}")
 
-    api_response = requests.get(url, headers=g_headers, timeout=30)
+    api_response = requests.get(url, headers=g_headers_json, timeout=30)
     if api_response.status_code != 200:
         _log(f"Error: {api_response.status_code} - {api_response.text}")
         return
@@ -394,7 +405,7 @@ def exec_prompt(url):
     response = requests.post(
         f"{g_server_url}/prompt",
         json=prompt_data,
-        headers=g_headers)
+        headers=g_headers_json)
 
     if response.status_code == 200:
         result = response.json()
@@ -412,6 +423,128 @@ def exec_prompt(url):
         g_client.post(UpdateWorkflowGeneration(device_id=DEVICE_ID, id=client_id, queue_count=get_queue_count(),
             error={"error_code": response.status_code, "message": response.text}))
 
+def url_to_image(url):
+    """Download an image from URL and return as PIL Image object"""
+    try:
+        response = requests.get(url) # Send GET request to download the image
+        response.raise_for_status()  # Raises an HTTPError for bad responses        
+        image = Image.open(io.BytesIO(response.content)) # Create PIL Image from the downloaded bytes
+        return image
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading image: {e}")
+        return None
+    except Exception as e:
+        print(f"Error opening image: {e}")
+        return None
+
+def url_to_bytes(url):
+    """Download an image from URL and return as PIL Image object"""
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.content
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading image: {e}")
+        return None
+    except Exception as e:
+        print(f"Error opening image: {e}")
+        return None
+
+def encode_image_to_base64(image_path):
+    """
+    Encode an image file to base64 string.
+    """
+    try:
+        with open(image_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+        return encoded_string
+    except FileNotFoundError:
+        print(f"Error: Image file '{image_path}' not found.")
+        return None
+    except Exception as e:
+        print(f"Error encoding image: {e}")
+        return None
+
+
+def ollama_generate(image_bytes, model, prompt):
+    """
+    Send an image to Ollama /api/generate API
+    """
+    # Ollama API endpoint
+    url = f"{OLLAMA_BASE_URL}/api/generate"
+    
+    # Encode image to base64
+    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+    if not base64_image:
+        return None
+    
+    # Prepare the request payload
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "images": [base64_image],
+        "stream": False
+    }
+    
+    try:
+        # Send POST request to Ollama API
+        response = requests.post(url, json=payload, timeout=120)
+        response.raise_for_status()
+        
+        # Parse response
+        result = response.json()
+        
+        if 'response' in result:
+            return result['response']
+        else:
+            print("Error: No 'response' field in API response")
+            print(f"Full response: {result}")
+            return None
+    except requests.exceptions.ConnectionError:
+        print("Error: Could not connect to Ollama API. Make sure Ollama is running on localhost:11434")
+        return None
+    except requests.exceptions.Timeout:
+        print("Error: Request timed out. The model might be taking too long to respond.")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error making request: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Error parsing JSON response: {e}")
+        return None
+
+def caption_image(artifact_url, model):
+    try:
+        if g_language_models is None:
+            _log(f"caption_image: g_language_models is None {OLLAMA_BASE_URL}")
+            return    
+        if artifact_url is None:
+            _log("caption_image: url is None")
+            return
+        if model is None:
+            _log("caption_image: model is None")
+            return
+        if model not in g_language_models:
+            _log(f"caption_image: model {model} is not available")
+            return
+        
+        url = resolve_url(artifact_url)
+        _log(f"caption_image ({model}) GET: {url}")
+
+        image_bytes = url_to_bytes(url)
+        if image_bytes is None:
+            return
+        
+        request = CaptionArtifact(device_id=DEVICE_ID, artifact_url=artifact_url)
+        request.caption = ollama_generate(image_bytes, model, "A caption of this image: ")
+        request.description = ollama_generate(image_bytes, model, "A detailed description of this image: ")
+        
+        _log(f"caption_image caption: {request.caption}\n{request.description}")
+        g_client.post(request)
+
+    except Exception as e:
+        _log(f"Error captioning image: {e}")
+        traceback.print_exc()
 
 def on_prompt_handler(json_data):
     if g_current_config["enabled"]:
@@ -458,12 +591,47 @@ def register_agent():
         content_type="application/json",
         stream=io.BytesIO(object_info_json.encode('utf-8')))
     
+    global g_language_models
+    g_language_models = None
+    if OLLAMA_BASE_URL is not None:
+        try:
+            g_language_models = []
+            # Check if Ollama is running by hitting the base endpoint with a reasonable timeout
+            response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=10)
+            response.raise_for_status()
+            
+            # Parse the response
+            data = response.json()
+            
+            # Extract models from the response
+            models = data.get('models', [])
+            
+            print(f"✅ Ollama is running with {len(models)} installed models")
+            for i, model in enumerate(models, 1):
+                name = model.get('name')
+                if name is not None:
+                    g_language_models.append(name)
+        except requests.exceptions.ConnectionError:
+            print(f"❌ Cannot connect to Ollama at {OLLAMA_BASE_URL}")
+            print("Make sure Ollama is running and accessible")
+            return False, None
+        except requests.exceptions.Timeout:
+            print(f"❌ Request to {OLLAMA_BASE_URL} timed out")
+            return False, None
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error connecting to Ollama: {e}")
+            return False, None
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            return False, None
+
     response = g_client.post_file_with_request(
         request=RegisterComfyAgent(
             device_id=DEVICE_ID,
             workflows=workflows,
             gpus=gpu_infos(),
-            queue_count=get_queue_count()
+            queue_count=get_queue_count(),
+            language_models=g_language_models,
         ),
         file=object_info_file)
 
@@ -592,7 +760,9 @@ if "COMFY_GATEWAY" in os.environ:
             _log(f"Failed to read device ID from {device_id_path}. Generating a new one: {DEVICE_ID}")
 
         try:
+            OLLAMA_BASE_URL = os.environ["OLLAMA_BASE_URL"]
             g_models = load_image_models(models_dir=models_dir, debug=True)
+            g_headers["User-Agent"] = g_headers_json["User-Agent"] = f"comfy-ffmpeg/{DEVICE_ID}/{__version__}"
             try:
                 setup_connection()
             except Exception:

@@ -25,6 +25,8 @@ services:
     env_file:
       - path: .env
         required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"        
     restart: always
     deploy:
       resources:
@@ -60,6 +62,8 @@ services:
     env_file:
       - path: .env
         required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"        
     restart: always
     deploy:
       resources:
@@ -94,6 +98,8 @@ services:
     env_file:
       - path: .env
         required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"        
     restart: always
     deploy:
       resources:

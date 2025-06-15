@@ -1,5 +1,5 @@
 """ Options:
-Date: 2025-06-13 02:25:03
+Date: 2025-06-15 19:52:53
 Version: 8.81
 Tip: To override a DTO option, remove "#" prefix before updating
 BaseUrl: https://comfy-gateway.pvq.app
@@ -115,6 +115,7 @@ class RegisterComfyAgent(IReturn[RegisterComfyAgentResponse], IPost):
     workflows: List[str] = field(default_factory=list)
     queue_count: int = 0
     gpus: Optional[List[GpuInfo]] = None
+    language_models: Optional[List[str]] = None
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
@@ -139,6 +140,20 @@ class UpdateWorkflowGeneration(IReturn[EmptyResponse], IPost):
     outputs: Optional[str] = None
     queue_count: Optional[int] = None
     error: Optional[ResponseStatus] = None
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL, undefined=Undefined.EXCLUDE)
+@dataclass
+class CaptionArtifact(IReturn[EmptyResponse], IPost):
+    # @Validate(Validator="NotEmpty")
+    # @Validate(Validator="ExactLength(32)")
+    device_id: Optional[str] = None
+
+    # @Validate(Validator="NotEmpty")
+    artifact_url: Optional[str] = None
+
+    caption: Optional[str] = None
+    description: Optional[str] = None
 
 
 # @Route("/comfy/tasks")
