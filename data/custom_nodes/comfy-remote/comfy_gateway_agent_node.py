@@ -760,7 +760,8 @@ if "COMFY_GATEWAY" in os.environ:
             _log(f"Failed to read device ID from {device_id_path}. Generating a new one: {DEVICE_ID}")
 
         try:
-            OLLAMA_BASE_URL = os.environ["OLLAMA_BASE_URL"]
+            if "OLLAMA_BASE_URL" in os.environ:
+                OLLAMA_BASE_URL = os.environ["OLLAMA_BASE_URL"]
             g_models = load_image_models(models_dir=models_dir, debug=True)
             g_headers["User-Agent"] = g_headers_json["User-Agent"] = f"comfy-ffmpeg/{DEVICE_ID}/{__version__}"
             try:
