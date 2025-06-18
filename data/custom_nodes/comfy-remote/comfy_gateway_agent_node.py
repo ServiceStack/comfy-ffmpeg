@@ -24,7 +24,7 @@ from comfyui_version import __version__
 
 from .dtos import (
     RegisterComfyAgent, GetComfyAgentEvents, UpdateComfyAgent, UpdateWorkflowGeneration, GpuInfo, 
-    CaptionArtifact,
+    CaptionArtifact, CompleteOllamaGenerateTask, GetOllamaGenerateTask
 )
 from servicestack.clients import UploadFile
 from servicestack import JsonServiceClient, printdump, WebServiceException, ResponseStatus
@@ -35,6 +35,7 @@ from PIL.PngImagePlugin import PngInfo
 from .classifier import load_image_models, classify_image
 from .imagehash import phash, dominant_color_hex
 
+VERSION = 1
 g_models = None
 g_server_url = "http://localhost:7860"
 g_headers_json={"Content-Type": "application/json"}
@@ -315,6 +316,8 @@ def listen_to_messages_poll():
                         register_agent()
                     elif event.name == "ExecWorkflow":
                         exec_prompt(event.args['url'])
+                    elif event.name == "ExecOllama":
+                        exec_ollama(event.args['model'], event.args['endpoint'], event.args['request'], event.args['replyTo'])
                     elif event.name == "CaptionImage":
                         caption_image(event.args['url'], event.args['model'])
 
@@ -465,6 +468,80 @@ def encode_image_to_base64(image_path):
         print(f"Error encoding image: {e}")
         return None
 
+def exec_ollama(model:str, endpoint:str, request:str, reply_to):
+    error = None
+
+    try:
+        if g_language_models is None:
+            error = ResponseStatus(error_code='Validation', message="Ollama is not available")
+        elif model is None:
+            error = ResponseStatus(error_code='Validation', message="model is None")
+        elif endpoint is None:
+            error = ResponseStatus(error_code='Validation', message="endpoint is None")
+        elif request is None:
+            error = ResponseStatus(error_code='Validation', message="request is None")
+        elif reply_to is None:
+            error = ResponseStatus(error_code='Validation', message="replyTo is None")
+        elif model not in g_language_models:
+            error = ResponseStatus(error_code='Validation', message=f"model {model} is not available")
+
+        reply_url = resolve_url(reply_to)
+
+        if error is not None:
+            if reply_to is None:
+                _log(f"exec_ollama: {error.error_code} {error.message}")
+            else:
+                body = {
+                    'response_status': error
+                }
+                g_client.post_url(reply_url, body)
+            return
+
+        ollama_request = request
+        if ollama_request.startswith('/') or ollama_request.startswith('http'):
+            url = resolve_url(request)
+            json = g_client.get_url(url, response_as=str)
+            ollama_request = json
+    
+        try:
+            # Send POST request to Ollama API
+            ollama_url = f"{OLLAMA_BASE_URL}{endpoint}"
+            _log(f"exec_ollama: POST {ollama_url}:")
+            _log(f"{ollama_request[:100]}... ({len(ollama_request)})")
+            response = requests.post(ollama_url, data=ollama_request, headers=g_headers_json, timeout=120)
+            response.raise_for_status()
+            
+            # Parse response
+            body = response.json()
+            print(f"exec_ollama response: {body}")
+
+            # Send response to replyTo URL
+            g_client.post_url(reply_url, body)
+            return
+
+        except requests.exceptions.ConnectionError as e:
+            _log("Error: Could not connect to Ollama API. Make sure Ollama is running on localhost:11434")
+            error = ResponseStatus(error_code='ConnectionError', message=f"{e}")
+        except requests.exceptions.Timeout as e:
+            _log("Error: Request timed out. The model might be taking too long to respond.")
+            error = ResponseStatus(error_code='Timeout', message=f"{e}")
+        except requests.exceptions.RequestException as e:
+            error = ResponseStatus(error_code='RequestException', message=f"{e}")
+        except json.JSONDecodeError as e:
+            error = ResponseStatus(error_code='JSONDecodeError', message=f"{e}")
+        except Exception as e:
+            error = ResponseStatus(error_code='Exception', message=f"{e}")
+
+        body = {
+            'responseStatus': {
+                'errorCode': error.error_code,
+                'message': error.message
+            }
+        }
+        g_client.post_url(reply_url, body)
+    except Exception as e:
+        _log(f"Error executing Ollama: {e}")
+        traceback.print_exc()
 
 def ollama_generate(image_bytes, model, prompt):
     """
@@ -628,6 +705,7 @@ def register_agent():
     response = g_client.post_file_with_request(
         request=RegisterComfyAgent(
             device_id=DEVICE_ID,
+            version=VERSION,
             workflows=workflows,
             gpus=gpu_infos(),
             queue_count=get_queue_count(),
