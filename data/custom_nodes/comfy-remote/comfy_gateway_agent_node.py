@@ -528,7 +528,7 @@ def exec_ollama(model:str, endpoint:str, request:str, reply_to):
         except requests.exceptions.RequestException as e:
             error = ResponseStatus(error_code='RequestException', message=f"{e or 'Error making request to Ollama API'}")
         except WebServiceException as e:
-            error = e.responseStatus
+            error = e.response_status
         except Exception as e:
             error = ResponseStatus(error_code='Exception', message=f"{e}")
 
