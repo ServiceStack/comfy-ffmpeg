@@ -497,13 +497,13 @@ def exec_ollama(model:str, endpoint:str, request:str, reply_to):
                 g_client.post_url(reply_url, body)
             return
 
-        ollama_request = request
-        if ollama_request.startswith('/') or ollama_request.startswith('http'):
-            url = resolve_url(request)
-            json = g_client.get_url(url, response_as=str)
-            ollama_request = json
-    
         try:
+            ollama_request = request
+            if ollama_request.startswith('/') or ollama_request.startswith('http'):
+                url = resolve_url(request)
+                json = g_client.get_url(url, response_as=str)
+                ollama_request = json
+    
             # Send POST request to Ollama API
             ollama_url = f"{OLLAMA_BASE_URL}{endpoint}"
             _log(f"exec_ollama: POST {ollama_url}:")
@@ -521,14 +521,14 @@ def exec_ollama(model:str, endpoint:str, request:str, reply_to):
 
         except requests.exceptions.ConnectionError as e:
             _log("Error: Could not connect to Ollama API. Make sure Ollama is running on localhost:11434")
-            error = ResponseStatus(error_code='ConnectionError', message=f"{e}")
+            error = ResponseStatus(error_code='ConnectionError', message=f"{e or 'Could not connect to Ollama API'}")
         except requests.exceptions.Timeout as e:
             _log("Error: Request timed out. The model might be taking too long to respond.")
-            error = ResponseStatus(error_code='Timeout', message=f"{e}")
+            error = ResponseStatus(error_code='Timeout', message=f"{e or 'Request timed out'}")
         except requests.exceptions.RequestException as e:
-            error = ResponseStatus(error_code='RequestException', message=f"{e}")
-        except json.JSONDecodeError as e:
-            error = ResponseStatus(error_code='JSONDecodeError', message=f"{e}")
+            error = ResponseStatus(error_code='RequestException', message=f"{e or 'Error making request to Ollama API'}")
+        except WebServiceException as e:
+            error = e.responseStatus
         except Exception as e:
             error = ResponseStatus(error_code='Exception', message=f"{e}")
 
@@ -538,6 +538,7 @@ def exec_ollama(model:str, endpoint:str, request:str, reply_to):
                 'message': error.message
             }
         }
+        _log(f"exec_ollama error: {reply_url} {error.error_code} {error.message}")
         g_client.post_url(reply_url, body)
     except Exception as e:
         _log(f"Error executing Ollama: {e}")
