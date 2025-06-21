@@ -45,7 +45,8 @@ RUN ln -sT ${DATA}/.cache ${ROOT}/.cache && \
 WORKDIR ${ROOT}
 COPY . /docker/
 
-RUN chmod u+x /docker/entrypoint.sh ${ROOT}
+RUN git clone https://github.com/ServiceStack/comfy-agent.git ${ROOT}/custom_nodes/comfy-agent
+RUN pip install -r ${ROOT}/custom_nodes/comfy-agent/requirements.txt
 
 WORKDIR ${ROOT}
 
@@ -54,5 +55,4 @@ ENV PATH="/usr/bin:${PATH}"
 ENV CLI_ARGS=""
 
 EXPOSE 7860
-ENTRYPOINT ["/docker/entrypoint.sh"]
 CMD ["sh", "-c", "python -u main.py --listen --port 7860 ${CLI_ARGS}"]
