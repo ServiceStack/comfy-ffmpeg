@@ -1,6 +1,6 @@
 publish.sh
 custom_nodes/
-comfy-remote-hold/
+comfy-agent-hold/
 *.safetensors
 *.ckpt
 *.pth
