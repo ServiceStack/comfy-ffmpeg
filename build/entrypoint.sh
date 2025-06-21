@@ -31,6 +31,5 @@ install_custom_node() {
 }
 
 install_custom_node "https://github.com/ServiceStack/comfy-agent"
-pip install git+https://github.com/openai/CLIP.git
 
 exec "$@"
