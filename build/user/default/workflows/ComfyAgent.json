@@ -1,0 +1,120 @@
+{
+    "id": "2e869baf-af07-4677-afab-e3e221937391",
+    "revision": 0,
+    "last_node_id": 2,
+    "last_link_id": 0,
+    "nodes": [
+        {
+            "id": 2,
+            "type": "ComfyAgentNode",
+            "pos": [
+                324,
+                116.60000610351562
+            ],
+            "size": [
+                410,
+                236.39999389648438
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "enabled",
+                    "name": "enabled",
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "enabled"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "apikey",
+                    "name": "apikey",
+                    "type": "STRING",
+                    "widget": {
+                        "name": "apikey"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "url",
+                    "name": "url",
+                    "type": "STRING",
+                    "widget": {
+                        "name": "url"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "ollama_url",
+                    "name": "ollama_url",
+                    "shape": 7,
+                    "type": "STRING",
+                    "widget": {
+                        "name": "ollama_url"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "hf_token",
+                    "name": "hf_token",
+                    "shape": 7,
+                    "type": "STRING",
+                    "widget": {
+                        "name": "hf_token"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "civitai_token",
+                    "name": "civitai_token",
+                    "shape": 7,
+                    "type": "STRING",
+                    "widget": {
+                        "name": "civitai_token"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "github_token",
+                    "name": "github_token",
+                    "shape": 7,
+                    "type": "STRING",
+                    "widget": {
+                        "name": "github_token"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [],
+            "properties": {
+                "aux_id": "ServiceStack/comfy-agent",
+                "ver": "0f338ae4cef709c3f2391e35e0bf39366c587908",
+                "Node name for S&R": "ComfyAgentNode"
+            },
+            "widgets_values": [
+                true,
+                "",
+                "https://comfy-gateway.pvq.app",
+                "",
+                "",
+                "",
+                ""
+            ]
+        }
+    ],
+    "links": [],
+    "groups": [],
+    "config": {},
+    "extra": {
+        "ds": {
+            "scale": 1,
+            "offset": [
+                0,
+                0
+            ]
+        }
+    },
+    "version": 0.4
+}
