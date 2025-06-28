@@ -52,7 +52,6 @@ RUN pip install -r ${ROOT}/custom_nodes/comfyui-manager/requirements.txt
 
 WORKDIR ${ROOT}
 COPY . /docker/
-COPY ./user/* ${ROOT}/user/
 
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV PATH="/usr/bin:${PATH}"
