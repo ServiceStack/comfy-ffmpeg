@@ -22,7 +22,7 @@ RUN pip install --upgrade pip
 
 # Clone and setup ComfyUI
 RUN --mount=type=cache,target=/root/.cache/pip \
-  git clone --depth 1 --branch v0.3.41 https://github.com/comfyanonymous/ComfyUI.git ${ROOT} && \
+  git clone --depth 1 --branch v0.3.43 https://github.com/comfyanonymous/ComfyUI.git ${ROOT} && \
   cd ${ROOT} && \
   ## Use latest torch and torchvision
   sed -i 's/^torch$/torch~=2.7.0/' requirements.txt && \
@@ -44,6 +44,7 @@ RUN ln -sT ${DATA}/.cache ${ROOT}/.cache && \
 
 WORKDIR ${ROOT}
 COPY . /docker/
+COPY ./user/* ${ROOT}/user/
 
 RUN git clone https://github.com/ServiceStack/comfy-agent.git ${ROOT}/custom_nodes/comfy-agent
 RUN pip install -r ${ROOT}/custom_nodes/comfy-agent/requirements.txt
