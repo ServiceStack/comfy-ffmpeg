@@ -42,14 +42,12 @@ RUN ln -sT ${DATA}/.cache ${ROOT}/.cache && \
     ln -sT ${DATA}/output ${ROOT}/output && \
     ln -sT ${DATA}/user ${ROOT}/user
 
-WORKDIR ${ROOT}
-COPY . /docker/
-COPY ./user/* ${ROOT}/user/
-
 RUN git clone https://github.com/ServiceStack/comfy-agent.git ${ROOT}/custom_nodes/comfy-agent
 RUN pip install -r ${ROOT}/custom_nodes/comfy-agent/requirements.txt
 
 WORKDIR ${ROOT}
+COPY . /docker/
+COPY ./user/* ${ROOT}/user/
 
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV PATH="/usr/bin:${PATH}"
