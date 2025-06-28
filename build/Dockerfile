@@ -35,15 +35,20 @@ RUN rm -rf ${ROOT}/custom_nodes ${ROOT}/input ${ROOT}/models ${ROOT}/notebooks $
 
 # Create symlinks
 RUN ln -sT ${DATA}/.cache ${ROOT}/.cache && \
-    ln -sT ${DATA}/custom_nodes ${ROOT}/custom_nodes && \
+    # ln -sT ${DATA}/custom_nodes ${ROOT}/custom_nodes && \
     ln -sT ${DATA}/input ${ROOT}/input && \
     ln -sT ${DATA}/models ${ROOT}/models && \
     ln -sT ${DATA}/notebooks ${ROOT}/notebooks && \
     ln -sT ${DATA}/output ${ROOT}/output && \
     ln -sT ${DATA}/user ${ROOT}/user
 
+# Install Comfy Agent
 RUN git clone https://github.com/ServiceStack/comfy-agent.git ${ROOT}/custom_nodes/comfy-agent
 RUN pip install -r ${ROOT}/custom_nodes/comfy-agent/requirements.txt
+
+# Install ComfyUI-Manager
+RUN git clone https://github.com/Comfy-Org/ComfyUI-Manager.git ${ROOT}/custom_nodes/comfyui-manager
+RUN pip install -r ${ROOT}/custom_nodes/comfyui-manager/requirements.txt
 
 WORKDIR ${ROOT}
 COPY . /docker/
