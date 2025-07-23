@@ -5,7 +5,7 @@ RUN apt-get update && \
 apt-get install -y software-properties-common && \
 add-apt-repository ppa:ubuntuhandbook1/ffmpeg7 -y
 
-RUN apt-get update && apt-get install -y git wget jq ffmpeg curl python3-venv && apt-get clean
+RUN apt-get update && apt-get install -y curl ffmpeg git jq python3-venv wget && apt-get clean
 
 ENV ROOT=/comfy
 ENV DATA=/data
